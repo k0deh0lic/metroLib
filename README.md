@@ -34,7 +34,7 @@ getDataByLine(string $line_code) : ?array
 특정 노선의 전체 열차 운행정보를 가져옵니다.   
 
 ### 파라메터 설명
-line_code: 노선 코드
+line_code: 노선 코드   
 station_code: 역 코드   
 
 #### 노선 코드
