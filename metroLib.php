@@ -258,6 +258,10 @@ class metroLib {
 						$train_list[$i]['dst_stn_nm'] = '서울역';
 						$train_list[$i]['dst_stn_cd'] = $this->line_data['1']['서울역'];
 						break;		
+					case '종로3가': // 광명셔틀 영등포행이 종로3가행으로 나오는 문제가 있음.
+						$train_list[$i]['dst_stn_nm'] = '영등포';
+						$train_list[$i]['dst_stn_cd'] = $this->line_data['1']['영등포'];
+						break;		
 					case '수원': // 서동탄행이 수원행으로 나오는 문제가 있음.
 						$train_list[$i]['dst_stn_nm'] = '서동탄';
 						$train_list[$i]['dst_stn_cd'] = $this->line_data['1']['서동탄'];
