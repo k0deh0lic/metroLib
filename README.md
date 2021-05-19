@@ -99,7 +99,7 @@ require_once('metroLib.php');
 $ml = NXLogisMetro\metroLib::getInstance();
 
 // 역별 열차 운행정보를 조회합니다. (예시: 1호선 구로역)
-$trainList = ml->getDataByStation('1701', '1')
+$trainList = ml->getDataByStation('1', '1701');
 
 // 화면에 데이터를 표시합니다.
 var_dump($trainList);
