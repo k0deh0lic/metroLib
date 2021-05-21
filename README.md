@@ -68,6 +68,8 @@ trn_sts: 열차 상태 코드 (integer)
 line: 노선 코드 (string)   
 is_exp: 급행 여부 (boolean)   
 trn_dir: 열차 운행 방향 (integer)   
+dst_stn_nm: 행선지 역 이름 (?string)   
+dst_stn_nm: 행선지 역 코드 (?string)   
 
 #### 열차 상태 코드
 0: 대기   
