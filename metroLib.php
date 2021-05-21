@@ -146,18 +146,14 @@ class metroLib {
 				$train['trn_form_no'] = null;
 
 			$train['trn_sts'] = $e['sts'];
-			if (isset($e['orgStnNm']) && isset($e['stnNm']) && $e['orgStnNm'] == $e['stnNm'] && $e['sts'] == 2)
-				$train['trn_sts'] = 0;
+			//if (isset($e['orgStnNm']) && isset($e['stnNm']) && $e['orgStnNm'] == $e['stnNm'] && $e['sts'] == 2)
+			//	$train['trn_sts'] = 0;
 
 			$train['is_exp'] = $e['directAt'] === '1';
 
 			$train['stn_nm'] = isset($e['stationNm']) ? $this->removeSubStnNm($e['stationNm']) : null;
-			switch ($train['stn_nm']) {
-				case '서울':
-					$train['stn_nm'] = '서울역';
-					break;
-				default:
-			}
+			if ($train['line'] == '1' && $train['stn_nm'] = '서울')
+				$train['stn_nm'] = '서울역';
 			$train['stn_cd'] = $train['stn_nm'] == null ? null : $this->line_data[$train['line']][$train['stn_nm']];
 
 			if (isset($e['dir']))
