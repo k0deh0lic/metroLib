@@ -1,7 +1,6 @@
 # metroLib
 metroLib는 대한민국 수도권 전철의 역별 열차 실시간 운행정보를 조회할 수 있는 API 라이브러리입니다.   
 서울시 API(이하 TOPIS API)와 달리 수인·분당선 실시간 운행정보도 가져올 수 있습니다.   
-또한 편성번호 조회도 가능하여 이를 통해 똥차 거르기(...), 자전거 거치대가 설치된 열차를 확인할 수 있습니다. 자전거거치대가 설치된 편성에 대해서는 haveBicycleRack.md를 참조하시기 바랍니다.   
 
 ## 지원하는 노선
 1호선   
@@ -27,7 +26,7 @@ PHP 7.4 이상
 require_once()로 metroLib.php를 참조한 후, metroLib::getInstance()로 객체를 가져옵니다.   
 
 ### 메서드
-getDataByStation(string $line_code, string $station_code) : ?array   
+getDataByStation(string $station_code) : ?array   
 특정 노선의 특정 역 기준으로 열차 목록을 가져옵니다.   
 기준 역 ±4역 범위 내의 열차 운행정보만을 가져올 수 있습니다.   
    
@@ -35,7 +34,7 @@ getDataByLine(string $line_code) : ?array
 특정 노선의 전체 열차 운행정보를 가져옵니다.   
 
 ### 파라메터 설명
-line_code: 노선 코드   
+line_code: 노선 코드
 station_code: 역 코드   
 
 #### 노선 코드
@@ -67,17 +66,14 @@ trn_sts: 열차 상태 코드 (integer)
 line: 노선 코드 (string)   
 is_exp: 급행 여부 (boolean)   
 trn_dir: 열차 운행 방향 (integer)   
-org_stn_nm: 시발역명 (?string)   
-org_stn_cd: 시발역 코드 (?string)   
-dst_stn_nm: 종착역명 (?string)   
-dst_stn_nm: 종착역 코드 (?string)   
 
 #### 열차 상태 코드
 0: 대기   
 1: 진입   
 2: 도착   
-3: 출발(운행중)   
-4: 종착   
+3: 출발   
+4: 운행중
+5: 종착   
 
 #### 열차 운행 방향
 U: 상행   
@@ -99,7 +95,7 @@ require_once('metroLib.php');
 $ml = NXLogisMetro\metroLib::getInstance();
 
 // 역별 열차 운행정보를 조회합니다. (예시: 1호선 구로역)
-$trainList = ml->getDataByStation('1', '1701');
+$trainList = ml->getDataByStation('1701')
 
 // 화면에 데이터를 표시합니다.
 var_dump($trainList);
@@ -107,11 +103,9 @@ var_dump($trainList);
 
 ## 라이선스
 GNU Affero GPL v3   
-특정인 또는 단체가 정보를 독점하는 일을 막기 위해 불가피하게 적용되었습니다. 꼭 준수하여 주시기 바랍니다.   
 
 ## 그 외
 * metroLib를 통해 얻은 정보는 정확하지 않을 수 있습니다. 
-* 일부 노선 구간(특히 1, 3, 4호선 공용구간) 내의 열차 편성정보 및 시종착역 정보가 제공되지 않을 수 있습니다.
-* 한국철도공사의 비공개 API(엄밀히는 코레일지하철톡만을 위한 API)를 이용한 것이므로 사용상의 책임은 사용자가 모두 부담하며, 코드 저작자 및 운영기관에서는 어떠한 경우에도 책임지지 않습니다.   
-* metroLib 및 metroLib를 통해 얻은 데이터를 악용하거나 한국철도공사(KORAIL) 또는 서울교통공사(SeoulMetro)에 민원을 제기하지 마세요. 서비스 중단으로 이어질 수 있습니다.   
-* 문의, 버그 제보는 Issues 기능을 이용하셔서 등록하면 됩니다. 누구든지 환영합니다.
+* 일부 구간(노선)에서는 편성정보 및 시·종착역 정보가 제공되지 않을 수 있습니다.
+* 서울교통공사의 비공개 API(엄밀히는 또타지하철 앱 전용 API)를 이용한 것이므로 사용상의 책임은 사용자가 모두 부담합니다.
+* metroLib 및 metroLib를 통해 얻은 데이터를 악용하거나 한국철도공사(KORAIL) 또는 서울교통공사(SeoulMetro)에 민원을 제기하지 마세요.
