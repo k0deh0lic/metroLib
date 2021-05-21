@@ -165,18 +165,21 @@ class metroLib {
 			else
 				$train['trn_dir'] = null;
 
-			$train['org_stn_nm'] = isset($e['orgStnNm']) && $e['orgStnNm'] != '0' ? $this->removeSubStnNm($e['orgStnNm']) : null;
-			$train['org_stn_cd'] = $train['org_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['org_stn_nm']];
+			//$train['org_stn_nm'] = isset($e['orgStnNm']) && $e['orgStnNm'] != '0' ? $this->removeSubStnNm($e['orgStnNm']) : null;
+			//$train['org_stn_cd'] = $train['org_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['org_stn_nm']];
 
 			if (isset($e['dstStn'])) {
 				$train['dst_stn_nm'] = isset($e['dstStnNm']) && $e['dstStnNm'] != '0' ? $this->removeSubStnNm($e['dstStnNm']) : null;
+				if ($train['line'] == '1' && $train['dst_stn_nm'] == '서울')
+					$train['dst_stn_nm'] = '서울역';
+
 				$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];
 			} else {
 				$train['dst_stn_nm'] = isset($e['statnTnm']) && $e['statnTnm'] != '0' ? $this->removeSubStnNm($e['statnTnm']) : null;
-				
-				// 2호선 외·내선순환행은 성수 시종착임.
-				if ($is_line2 && ($train['dst_stn_nm'] == '외선순환' || $train['dst_stn_nm'] == '내선순환')) 
-					$train['dst_stn_nm'] = '성수'; 
+				if ($train['line'] == '1' && $train['dst_stn_nm'] == '서울')
+					$train['dst_stn_nm'] = '서울역';
+				else if ($is_line2 && ($train['dst_stn_nm'] == '외선순환' || $train['dst_stn_nm'] == '내선순환')) 
+					$train['dst_stn_nm'] = '성수'; // 2호선 외·내선순환행은 성수 시종착임.
 
 				$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];					
 			}
