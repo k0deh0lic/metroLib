@@ -198,7 +198,8 @@ class metroLib {
 
 						$train_list[$i]['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
 						$train_list[$i]['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
-						$train_list[$i]['trn_sts'] = $train_list2[$trn_no]['trn_sts'] ?? $train_list[$i]['trn_sts'];
+						if ($train_list[$i]['trn_sts'] != 5)
+							$train_list[$i]['trn_sts'] = $train_list2[$trn_no]['trn_sts'] ?? $train_list[$i]['trn_sts'];
 
 						$train_list[$i]['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
 						$train_list[$i]['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
