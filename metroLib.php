@@ -144,10 +144,10 @@ class metroLib {
 			// 000이면 편성정보가 없다는 의미임.
 			if ($train['trn_form_no'] == '000')
 				$train['trn_form_no'] = null;
+			if ($train['trn_form_no'] != null)
+				$train['trn_form_no'] = ltrim($train['trn_form_no'], '0');
 
 			$train['trn_sts'] = $e['sts'];
-			//if (isset($e['orgStnNm']) && isset($e['stnNm']) && $e['orgStnNm'] == $e['stnNm'] && $e['sts'] == 2)
-			//	$train['trn_sts'] = 0;
 
 			if (isset($e['directAt']))
 				$train['is_exp'] = $e['directAt'] === '1';
