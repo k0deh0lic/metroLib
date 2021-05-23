@@ -293,22 +293,23 @@ class metroLib {
 
 		$train_list = array();
 		foreach ($res['realtimePositionList'] as $e) {
+			$e['statnNm'] = $this->removeSubStnNm($e['statnNm']);
 			if ($e['statnNm'] === '서울')
 				$e['statnNm'] = '서울역';
+
+			$e['statnTnm'] = $this->removeSubStnNm($e['statnTnm']);
 			if ($e['statnTnm'] === '서울')
 				$e['statnTnm'] = '서울역';
-			$e['statnNm'] = $this->removeSubStnNm($e['statnNm']);
-			$e['statnTnm'] = $this->removeSubStnNm($e['statnTnm']);
 
 			switch ($e['trainSttus']) {
 				case '0':
 					$e['trainSttus'] = 1;
 					break;
 				case '1':
-					$e['trainSttus'] = 3;
+					$e['trainSttus'] = 2;
 					break;
 				default:
-					$e['trainSttus'] = null;
+					$e['trainSttus'] = 3;
 			}
 
 			$train_list[$e['trainNo']] = array('dst_stn_nm' => $e['statnTnm'],
