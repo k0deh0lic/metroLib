@@ -149,7 +149,10 @@ class metroLib {
 			//if (isset($e['orgStnNm']) && isset($e['stnNm']) && $e['orgStnNm'] == $e['stnNm'] && $e['sts'] == 2)
 			//	$train['trn_sts'] = 0;
 
-			$train['is_exp'] = $e['directAt'] === '1';
+			if (isset($e['directAt']))
+				$train['is_exp'] = $e['directAt'] === '1';
+			else
+				$train['is_exp'] = false;
 
 			$train['stn_nm'] = isset($e['stationNm']) ? $this->removeSubStnNm($e['stationNm']) : null;
 			if (($train['line'] == '1' || $train['line'] == '4') && $train['stn_nm'] == '서울')
