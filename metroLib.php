@@ -164,28 +164,19 @@ class metroLib {
 			else
 				$train['trn_dir'] = null;
 
-			//$train['org_stn_nm'] = isset($e['orgStnNm']) && $e['orgStnNm'] != '0' ? $this->removeSubStnNm($e['orgStnNm']) : null;
-			//$train['org_stn_cd'] = $train['org_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['org_stn_nm']];
-
-			if (isset($e['dstStn'])) {
+			if (isset($e['dstStnNm'])) 
 				$train['dst_stn_nm'] = isset($e['dstStnNm']) && $e['dstStnNm'] != '0' ? $this->removeSubStnNm($e['dstStnNm']) : null;
-				if (($train['line'] == '1' || $train['line'] == '4') && $train['dst_stn_nm'] == '서울')
-					$train['dst_stn_nm'] = '서울역';
-
-				$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];
-			} else {
+			else 
 				$train['dst_stn_nm'] = isset($e['statnTnm']) && $e['statnTnm'] != '0' ? $this->removeSubStnNm($e['statnTnm']) : null;
-				if ($train['line'] == '1' && $train['dst_stn_nm'] == '서울')
-					$train['dst_stn_nm'] = '서울역';
-				else if ($is_line2 && ($train['dst_stn_nm'] == '외선순환' || $train['dst_stn_nm'] == '내선순환')) 
-					$train['dst_stn_nm'] = '성수'; // 2호선 외·내선순환행은 성수 시종착임.
 
-				$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];					
-			}
+			if (($train['line'] == '1' || $train['line'] == '4') && $train['dst_stn_nm'] == '서울')
+				$train['dst_stn_nm'] = '서울역';
+			else if ($is_line2 && ($train['dst_stn_nm'] == '외선순환' || $train['dst_stn_nm'] == '내선순환')) 
+				$train['dst_stn_nm'] = '성수'; // 2호선 외·내선순환행은 성수 시종착임.
+			//else if ($train['line'] == '7' && $train['dst_stn_nm'] == '부평구청')
+			//	$train['dst_stn_nm'] = '석남';
 
-			// 종착처리
-			if (isset($train['dst_stn_nm']) && $train['dst_stn_nm'] == $train['stn_nm'] && $train['trn_sts'] == 2)
-				$train['trn_sts'] = 5;
+			$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];
 
 			$train_list[] = $train;
 		}
@@ -252,6 +243,10 @@ class metroLib {
 					}
 				}
 			}
+
+			// 종착처리
+			if (isset($train['dst_stn_nm']) && $train['dst_stn_nm'] == $train['stn_nm'] && $train['trn_sts'] == 2)
+				$train['trn_sts'] = 5;
 		}
 
 		return $train_list;
