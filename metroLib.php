@@ -14,7 +14,7 @@ class metroLib {
 	* USE_TOPIS_API 상수가 false로 지정되었을 경우 사용되지 않습니다.
 	* 형식은 반드시 'http://swopenapi.seoul.go.kr/api/subway/[YOUR API KEY]/json/realtimePosition/0/80/' 여야 합니다.
 	*/
-	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway/4e4f624c6b6b6f643130336f62766553/json/realtimePosition/0/80/';
+	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway//json/realtimePosition/0/80/';
 
 	/*
 	* 여기서부터는 건드리지 마십시오.
@@ -75,19 +75,7 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataFromServer(int $type, string $param) : ?array {
-		$is_smrt = false;
-		if ($type == self::GET_TYPE_STN) {
-			foreach ($this->line_data as $stns) {
-				foreach ($stns as $stn_nm => $stn_cd) {
-					if ($stn_cd == $param) {
-						$is_smrt = true;
-						break;
-					}
-				}
-			}
-		}
-		
-		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
+		$url = 'https://smss.seoulmetro.co.kr/api/';
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
