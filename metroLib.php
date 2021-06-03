@@ -14,7 +14,7 @@ class metroLib {
 	* USE_TOPIS_API 상수가 false로 지정되었을 경우 사용되지 않습니다.
 	* 형식은 반드시 'http://swopenapi.seoul.go.kr/api/subway/[YOUR API KEY]/json/realtimePosition/0/80/' 여야 합니다.
 	*/
-	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway//json/realtimePosition/0/80/';
+	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway/4e4f624c6b6b6f643130336f62766553/json/realtimePosition/0/80/';
 
 	/*
 	* 여기서부터는 건드리지 마십시오.
@@ -77,7 +77,10 @@ class metroLib {
 	protected function getDataFromServer(int $type, string $param) : ?array {
 		$is_smrt = false;
 		if ($type == self::GET_TYPE_STN) {
-			foreach ($this->line_data as $stns) {
+			foreach ($this->line_data as $line => $stns) {
+				if ($line != '5' && $line != '6' && $line != '7' && $line != '8')
+					continue;
+
 				foreach ($stns as $stn_nm => $stn_cd) {
 					if ($stn_cd == $param) {
 						$is_smrt = true;
@@ -88,7 +91,6 @@ class metroLib {
 		}
 		
 		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
-
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
@@ -204,13 +206,14 @@ class metroLib {
 					if (array_key_exists($trn_no, $train_list2)) {
 						$train_list[$i]['is_exp'] = $train_list2[$trn_no]['is_exp'];
 
-						/*
-						위치, 상태 정보 보정은 보류
-						$train_list[$i]['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
-						$train_list[$i]['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
+						if ($train_list[$i]['stn_nm'] == null) {
+							$train_list[$i]['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
+							$train_list[$i]['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
+						}
+
 						if ($train_list[$i]['trn_sts'] != 5)
 							$train_list[$i]['trn_sts'] = $train_list2[$trn_no]['trn_sts'] ?? $train_list[$i]['trn_sts'];
-						*/
+
 
 						$train_list[$i]['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
 						$train_list[$i]['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
