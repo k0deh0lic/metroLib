@@ -14,7 +14,7 @@ class metroLib {
 	* USE_TOPIS_API 상수가 false로 지정되었을 경우 사용되지 않습니다.
 	* 형식은 반드시 'http://swopenapi.seoul.go.kr/api/subway/[YOUR API KEY]/json/realtimePosition/0/80/' 여야 합니다.
 	*/
-	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway//json/realtimePosition/0/80/';
+	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway/4e4f624c6b6b6f643130336f62766553/json/realtimePosition/0/80/';
 
 	/*
 	* 여기서부터는 건드리지 마십시오.
@@ -75,7 +75,19 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataFromServer(int $type, string $param) : ?array {
-		$url = 'https://smss.seoulmetro.co.kr/api/';
+		$is_smrt = false;
+		if ($type == self::GET_TYPE_STN) {
+			foreach ($this->line_data as $stns) {
+				foreach ($stns as $stn_nm => $stn_cd) {
+					if ($stn_cd == $param) {
+						$is_smrt = true;
+						break;
+					}
+				}
+			}
+		}
+		
+		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
@@ -112,7 +124,7 @@ class metroLib {
 		if (count($res) == 0)
 			return null;
 
-		$train_list = $this->processTrainList($res);
+		$train_list = $this->processTrainList($res, $is_smrt);
 		return $train_list;
 	}
 
@@ -121,17 +133,18 @@ class metroLib {
 	*
 	* @access protected
 	* @param array $par
+	* @param bool $is_smrt = false
 	* @return ?array
 	* @throw \RuntimeException, \InvalidArgumentException
 	*/
-	protected function processTrainList(array $par) : array {
+	protected function processTrainList(array $par, bool $is_smrt = false) : array {
 		$train_list = array();
 		foreach ($par as $e) {
 			$is_line2 = strval($e['line']) == '2';
 			$trn_dirs = $is_line2 ? ['I', 'O', 'SI1', 'SO1', 'SI2', 'SO2'] : ['U', 'D'];
 
 			$train = array();
-			$train['trn_no'] = ($is_line2 && substr($e['trainY'], 0, 1) != 'S' ? 'S' : '').$e['trainY'];
+			$train['trn_no'] = (($is_line2 || $is_smrt) && substr($e['trainY'], 0, 1) != 'S' ? 'S' : '').$e['trainY'];
 			$train['line'] = strval($e['line']);
 
 			// 3, 4호선 열차번호가 잘못된 경우를 수정
