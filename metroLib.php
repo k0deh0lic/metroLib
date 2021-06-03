@@ -75,7 +75,20 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataFromServer(int $type, string $param) : ?array {
-		$url = 'https://smss.seoulmetro.co.kr/api/';
+		$is_smrt = false;
+		if ($type == self::GET_TYPE_STN) {
+			foreach ($this->line_data as $stns) {
+				foreach ($stns as $stn_nm => $stn_cd) {
+					if ($stn_cd == $param) {
+						$is_smrt = true;
+						break;
+					}
+				}
+			}
+		}
+		
+		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
+
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
