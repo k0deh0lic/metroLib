@@ -14,7 +14,7 @@ class metroLib {
 	* USE_TOPIS_API 상수가 false로 지정되었을 경우 사용되지 않습니다.
 	* 형식은 반드시 'http://swopenapi.seoul.go.kr/api/subway/[YOUR API KEY]/json/realtimePosition/0/80/' 여야 합니다.
 	*/
-	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway/4e4f624c6b6b6f643130336f62766553/json/realtimePosition/0/80/';
+	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway//json/realtimePosition/0/80/';
 
 	/*
 	* 여기서부터는 건드리지 마십시오.
@@ -61,6 +61,9 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	public function getDataByLine(string $line_code) : ?array {
+		if (strtoupper($line_code) == 'XXXX')
+			throw new RuntimeException('Invalid argument: $line_code: '.$line_code);
+
 		$train_list = $this->getDataFromServer(self::GET_TYPE_LINE, $line_code);
 		return $train_list;
 	}
@@ -91,6 +94,7 @@ class metroLib {
 		}
 		
 		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
+
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
@@ -172,9 +176,11 @@ class metroLib {
 				$train['is_exp'] = false;
 
 			$train['stn_nm'] = isset($e['stationNm']) ? $this->removeSubStnNm($e['stationNm']) : null;
-			// 서울역 관련 처리
 			if (($train['line'] == '1' || $train['line'] == '4') && $train['stn_nm'] == '서울')
-				$train['stn_nm'] = '서울역';
+				$train['stn_nm'] = '서울역'; // 서울역 관련 처리
+			else if ($train['line'] == '1' && $train['stn_nm'] == null)
+				$train['stn_nm'] = '탕정'; // 2021-06 기준 탕정역이 null로 나오는 문제가 있음.
+
 			$train['stn_cd'] = $train['stn_nm'] == null ? null : $this->line_data[$train['line']][$train['stn_nm']];
 
 			if (isset($e['dir']))
@@ -201,22 +207,18 @@ class metroLib {
 		if (self::USE_TOPIS_API && count($train_list) > 0) {
 			$train_list2 = $this->getDataByTopis($train_list[0]['line']);
 			if ($train_list2 != null) {
-				for ($i = 0; $i < count($train_list); $i++) {
-					$trn_no = substr($train_list[$i]['trn_no'], 1);
+				foreach ($train_list as &$train) {
+					$trn_no = substr($train['trn_no'], 1);
 					if (array_key_exists($trn_no, $train_list2)) {
-						$train_list[$i]['is_exp'] = $train_list2[$trn_no]['is_exp'];
+						$train['is_exp'] = $train_list2[$trn_no]['is_exp'];
 
-						if ($train_list[$i]['stn_nm'] == null) {
-							$train_list[$i]['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
-							$train_list[$i]['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
+						if ($train['stn_nm'] == null) {
+							$train['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
+							$train['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
 						}
 
-						if ($train_list[$i]['trn_sts'] != 5)
-							$train_list[$i]['trn_sts'] = $train_list2[$trn_no]['trn_sts'] ?? $train_list[$i]['trn_sts'];
-
-
-						$train_list[$i]['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
-						$train_list[$i]['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
+						$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
+						$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
 					}
 				}
 			}
@@ -224,44 +226,45 @@ class metroLib {
 
 		// 처리되지 않은 행선지 보정
 		// 정확하지 않을 수 있음.(중간종착)
-		for ($i = 0; $i < count($train_list); $i++) {
-			if ($train_list[$i]['line'] == '1') {
-				switch ($train_list[$i]['dst_stn_nm']) {
+		foreach ($train_list as &$train) {
+			if ($train['line'] == '1') {
+				switch ($train['dst_stn_nm']) {
 					case '수원': // 서동탄행이 수원행으로 나오는 문제가 있음.
-						$train_list[$i]['dst_stn_nm'] = '서동탄';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['1']['서동탄'];
+						$train['dst_stn_nm'] = '서동탄';
+						$train['dst_stn_cd'] = $this->line_data['1']['서동탄'];
 						break;
 					case '동대문': // 구로행이 동대문행으로 나오는 문제가 있음.
-						$train_list[$i]['dst_stn_nm'] = '구로';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['1']['구로'];
+						$train['dst_stn_nm'] = '구로';
+						$train['dst_stn_cd'] = $this->line_data['1']['구로'];
 						break;
 					default:
 				}
-			} else if ($train_list[$i]['line'] == '3') {
+			} else if ($train['line'] == '3') {
 				// 행선지가 null이면 노선의 끝 역이라고 간주하면 됨.
-				if ($train_list[$i]['dst_stn_nm'] == null) {
-					if ($train_list[$i]['trn_dir'] == 'U') {
-						$train_list[$i]['dst_stn_nm'] = '대화';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['3']['대화'];
+				if ($train['dst_stn_nm'] == null) {
+					if ($train['trn_dir'] == 'U') {
+						$train['dst_stn_nm'] = '대화';
+						$train['dst_stn_cd'] = $this->line_data['3']['대화'];
 					} else {
-						$train_list[$i]['dst_stn_nm'] = '오금';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['3']['오금'];
+						$train['dst_stn_nm'] = '오금';
+						$train['dst_stn_cd'] = $this->line_data['3']['오금'];
 					}
 				}
-			} else if ($train_list[$i]['line'] == '4') {
+			} else if ($train['line'] == '4') {
 				// 행선지가 null이면 노선의 끝 역이라고 간주하면 됨.
-				if ($train_list[$i]['dst_stn_nm'] == null) {
-					if ($train_list[$i]['trn_dir'] == 'U') {
-						$train_list[$i]['dst_stn_nm'] = '당고개';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['4']['당고개'];
+				if ($train['dst_stn_nm'] == null) {
+					if ($train['trn_dir'] == 'U') {
+						$train['dst_stn_nm'] = '당고개';
+						$train['dst_stn_cd'] = $this->line_data['4']['당고개'];
 					} else {
-						$train_list[$i]['dst_stn_nm'] = '오이도';
-						$train_list[$i]['dst_stn_cd'] = $this->line_data['4']['오이도'];
+						$train['dst_stn_nm'] = '오이도';
+						$train['dst_stn_cd'] = $this->line_data['4']['오이도'];
 					}
 				}
 			}
 
-			if (isset($train[$i]['dst_stn_nm']) && $train[$i]['dst_stn_nm'] == $train[$i]['stn_nm'] && ($train[$i]['trn_sts'] == 2 || $train[$i]['trn_sts'] == 3 || $train[$i]['trn_sts'] == 4))
+			// 종착처리
+			if (isset($train['dst_stn_nm']) && $train['dst_stn_nm'] == $train['stn_nm'] && ($train['trn_sts'] == 2 || $train['trn_sts'] == 3 || $train['trn_sts'] == 4))
 				$train['trn_sts'] = 5;
 		}
 
@@ -323,6 +326,8 @@ class metroLib {
 				$dst_stn_nm = '서울역';
 			else if ($line_code == '7' && $dst_stn_nm === '53')
 				$dst_stn_nm = '석남';
+			else if ($dst_stn_nm === '99') // 회송 또는 시운전인 것 같음.
+				$dst_stn_nm = null;
 
 			$trn_sts = 3;
 			switch ($e['trainSttus']) {
@@ -335,7 +340,7 @@ class metroLib {
 			}
 
 			$train_list[$e['trainNo']] = array('dst_stn_nm' => $dst_stn_nm,
-												'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
+												'dst_stn_cd' => $dst_stn_nm != null ? $this->line_data[$line_code][$dst_stn_nm] : null,
 												'is_exp' => $e['directAt'] == '1',
 												'stn_nm' => $stn_nm,
 												'stn_cd' => $this->line_data[$line_code][$stn_nm],
