@@ -181,6 +181,10 @@ $holidays = getRestDayList();
 
 println('공휴일 정보 파싱 완료');
 
+$output_directory = __DIR__.'/output';
+if (!file_exists($outout_directory))
+	mkdir($output_directory);
+
 $output_filename = __DIR__.'/output/metro.db';
 // 기존 파일이 있으면 삭제함.
 if (file_exists($output_filename))
