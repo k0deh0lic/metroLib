@@ -2,6 +2,9 @@
 
 namespace NXLogisMetro;
 
+if (date_default_timezone_get() != 'Asia/Seoul')
+	date_default_timezone_set('Asia/Seoul');
+
 class metroLib {
 	/*
 	* 수도권 전철 1호선, 3호선, 4호선 및 7호선의 경우 행선지, 급행여부가 누락되거나 오기되는 경우가 있어 이를 TOPIS API를 이용하여 보정할 수 있습니다.
@@ -17,6 +20,14 @@ class metroLib {
 	protected const TOPIS_URL = 'http://swopenapi.seoul.go.kr/api/subway//json/realtimePosition/0/80/';
 
 	/*
+	* 열차별 기·종점 DB 사용 여부
+	* 열차별 기·종점 DB를 참조하여 열차별 기·종점 오류를 보정할 수 있습니다.
+	* 이 기능을 사용하려면 metroLib.php와 동일한 경로에 metro.db 파일이 필요합니다.
+	* metro.db는 genTrainDB를 이용해서 만들 수 있습니다.
+	*/
+	protected const USE_LOCAL_DB = true;
+
+	/*
 	* 여기서부터는 건드리지 마십시오.
 	*/
 	protected const GET_TYPE_LINE = 0;
@@ -24,6 +35,7 @@ class metroLib {
 
 	protected static $instance = null;
 	protected $line_data = null;
+	protected $db = null;
 
 	/*
 	* metroLib 인스턴스를 가져옵니다.
@@ -61,9 +73,6 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	public function getDataByLine(string $line_code) : ?array {
-		if (strtoupper($line_code) == 'XXXX')
-			throw new RuntimeException('Invalid argument: $line_code: '.$line_code);
-
 		$train_list = $this->getDataFromServer(self::GET_TYPE_LINE, $line_code);
 		return $train_list;
 	}
@@ -94,7 +103,6 @@ class metroLib {
 		}
 		
 		$url = $is_smrt ? 'https://sgapp.seoulmetro.co.kr/api/' : 'https://smss.seoulmetro.co.kr/api/';
-
 		switch ($type) {
 			case self::GET_TYPE_LINE:
 				$url .= '3010.do';
@@ -154,11 +162,22 @@ class metroLib {
 			$train['trn_no'] = (($is_line2 || $is_smrt) && substr($e['trainY'], 0, 1) != 'S' ? 'S' : '').$e['trainY'];
 			$train['line'] = strval($e['line']);
 
-			// 3, 4호선 열차번호가 잘못된 경우를 수정
-			if ($train['line'] == '3' && substr($train['trn_no'], 1, 1) != '3')
+			if (isset($e['dir']))
+				$train['trn_dir'] = $trn_dirs[$e['dir'] - 1];
+			else
+				$train['trn_dir'] = null;
+
+			if ($train['line'] == '2') { // 2호선 열차번호가 잘못된 경우를 수정
+				if (($train['trn_dir'] == 'SI1' || $train['trn_dir'] == 'SO1') && substr($train['trn_no'], 1, 1) != '1')
+					$train['trn_no'] = substr($train['trn_no'], 0, 1).'1'.substr($train['trn_no'], 2); // 성수지선은 1000번대
+				else if (($train['trn_dir'] == 'SI2' || $train['trn_dir'] == 'SO2') && substr($train['trn_no'], 1, 1) != '5')
+					$train['trn_no'] = substr($train['trn_no'], 0, 1).'5'.substr($train['trn_no'], 2); // 신정지선은 5000번대
+			} else if ($train['line'] == '3' && substr($train['trn_no'], 1, 1) != '3') { // 3호선 열차번호가 잘못된 경우를 수정
 				$train['trn_no'] = substr($train['trn_no'], 0, 1).'3'.substr($train['trn_no'], 2);
-			else if ($train['line'] == '4' && substr($train['trn_no'], 1, 1) != '4')
+			} else if ($train['line'] == '4' && substr($train['trn_no'], 1, 1) != '4') { // 4호선 열차번호가 잘못된 경우를 수정
 				$train['trn_no'] = substr($train['trn_no'], 0, 1).'4'.substr($train['trn_no'], 2);
+			} else if ($train['line'] == '5' || $train['line'] == '6' || $train['line'] == '7' || $train['line'] == '8') // 5-8호선은 접두어 SMRT
+				$train['trn_no'] = 'SMRT'.substr($train['trn_no'], 1);
 
 			$train['trn_form_no'] = $e['trainP'] ?? null;
 			// 000이면 편성정보가 없다는 의미임.
@@ -183,11 +202,6 @@ class metroLib {
 
 			$train['stn_cd'] = $train['stn_nm'] == null ? null : $this->line_data[$train['line']][$train['stn_nm']];
 
-			if (isset($e['dir']))
-				$train['trn_dir'] = $trn_dirs[$e['dir'] - 1];
-			else
-				$train['trn_dir'] = null;
-
 			if (isset($e['dstStnNm'])) 
 				$train['dst_stn_nm'] = isset($e['dstStnNm']) && $e['dstStnNm'] != '0' ? $this->removeSubStnNm($e['dstStnNm']) : null;
 			else 
@@ -200,6 +214,19 @@ class metroLib {
 
 			$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];
 
+			// Local DB를 이용하여 보정
+			if (self::USE_LOCAL_DB) {
+				$data = $this->getTrainDataFromLocalDb($train['trn_no']);
+				if ($data != null) {
+					$org_stn_nm = $data['org_stn_nm'];
+					if ($org_stn_nm != null && $org_stn_nm == $train['stn_nm'] && ($train['trn_sts'] == 1 || $train['trn_sts'] == 2))
+						$train['trn_sts'] = 0;
+
+					$train['dst_stn_nm'] = $data['dst_stn_nm'];
+					$train['is_exp'] = $data['is_express'] == 1;
+				}
+			}
+
 			$train_list[] = $train;
 		}
 
@@ -208,7 +235,8 @@ class metroLib {
 			$train_list2 = $this->getDataByTopis($train_list[0]['line']);
 			if ($train_list2 != null) {
 				foreach ($train_list as &$train) {
-					$trn_no = substr($train['trn_no'], 1);
+					$trn_no = str_replace('MRT', '', $train['trn_no']);
+					$trn_no = substr($trn_no, 1);
 					if (array_key_exists($trn_no, $train_list2)) {
 						$train['is_exp'] = $train_list2[$trn_no]['is_exp'];
 
@@ -217,15 +245,17 @@ class metroLib {
 							$train['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
 						}
 
-						$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
-						$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
+						// 석남행 열차가 부평구청행으로 나오기에 어쩔 수 없이 조건 추가
+						if ($train['dst_stn_nm'] == null || $train['dst_stn_nm'] == '부평구청') {
+							$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
+							$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
+						}
 					}
 				}
 			}
 		}
 
 		// 처리되지 않은 행선지 보정
-		// 정확하지 않을 수 있음.(중간종착)
 		foreach ($train_list as &$train) {
 			if ($train['line'] == '1') {
 				switch ($train['dst_stn_nm']) {
@@ -239,31 +269,8 @@ class metroLib {
 						break;
 					default:
 				}
-			} else if ($train['line'] == '3') {
-				// 행선지가 null이면 노선의 끝 역이라고 간주하면 됨.
-				if ($train['dst_stn_nm'] == null) {
-					if ($train['trn_dir'] == 'U') {
-						$train['dst_stn_nm'] = '대화';
-						$train['dst_stn_cd'] = $this->line_data['3']['대화'];
-					} else {
-						$train['dst_stn_nm'] = '오금';
-						$train['dst_stn_cd'] = $this->line_data['3']['오금'];
-					}
-				}
-			} else if ($train['line'] == '4') {
-				// 행선지가 null이면 노선의 끝 역이라고 간주하면 됨.
-				if ($train['dst_stn_nm'] == null) {
-					if ($train['trn_dir'] == 'U') {
-						$train['dst_stn_nm'] = '당고개';
-						$train['dst_stn_cd'] = $this->line_data['4']['당고개'];
-					} else {
-						$train['dst_stn_nm'] = '오이도';
-						$train['dst_stn_cd'] = $this->line_data['4']['오이도'];
-					}
-				}
 			}
 
-			// 종착처리
 			if (isset($train['dst_stn_nm']) && $train['dst_stn_nm'] == $train['stn_nm'] && ($train['trn_sts'] == 2 || $train['trn_sts'] == 3 || $train['trn_sts'] == 4))
 				$train['trn_sts'] = 5;
 		}
@@ -316,18 +323,21 @@ class metroLib {
 		$train_list = array();
 		foreach ($res['realtimePositionList'] as $e) {
 			$stn_nm = $this->removeSubStnNm($e['statnNm']);
-			if ($stn_nm == '서울') // 1, 4호선 서울역 관련 처리
-				$stn_nm = '서울역';
-			else if ($stn_nm == '춘의역') // 7호선 춘의역 관련 처리
-				$stn_nm = '춘의';
+			// 역명 불일치 문제 수정
+			switch ($stn_nm) {
+				case '서울':
+					$stn_nm = '서울역';
+					break;
+				case '춘의역':
+					$stn_nm = '춘의';
+					break;
+			}
 
 			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
 			if ($dst_stn_nm == '서울')
 				$dst_stn_nm = '서울역';
-			else if ($line_code == '7' && $dst_stn_nm === '53')
+			else if ($line_code == '7' && $dst_stn_nm === '53') // 석남행은 53으로 나옴.
 				$dst_stn_nm = '석남';
-			else if ($dst_stn_nm === '99') // 회송 또는 시운전인 것 같음.
-				$dst_stn_nm = null;
 
 			$trn_sts = 3;
 			switch ($e['trainSttus']) {
@@ -340,7 +350,7 @@ class metroLib {
 			}
 
 			$train_list[$e['trainNo']] = array('dst_stn_nm' => $dst_stn_nm,
-												'dst_stn_cd' => $dst_stn_nm != null ? $this->line_data[$line_code][$dst_stn_nm] : null,
+												'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
 												'is_exp' => $e['directAt'] == '1',
 												'stn_nm' => $stn_nm,
 												'stn_cd' => $this->line_data[$line_code][$stn_nm],
@@ -350,6 +360,47 @@ class metroLib {
 		return $train_list;
 	}
 
+	/*
+	* 로컬 DB에서 열차 데이터를 가져옵니다.
+	*
+	* @access protected
+	* @param string $trn_no
+	* @return ?array
+	* @throws \RuntimeException
+	*/
+	protected function getTrainDataFromLocalDb(string $trn_no) : ?array {
+		if ($this->db == null) {
+			$db_filename = __DIR__.'/metro.db';
+			if (!file_exists($db_filename))
+				throw new \RuntimeException('Cannot find metro.db file.');
+
+			$this->db = new \Sqlite3($db_filename);
+		}
+		
+		$today = date('Ymd', time() - (intval(date('H')) < 4 ? (60 * 60 * 24) : 0));
+		
+		$day_type = 0;
+		$res = $this->db->query("SELECT * FROM holiday_list WHERE date=\"{$today}\";");
+		if ($res === false)
+			throw new \RuntimeException('Local DB error!');
+
+		if ($res->fetchArray(SQLITE3_ASSOC) === false) {
+			$weekday_idx = date('w', strtotime($today));
+			$day_type = $weekday_idx == 0 || $weekday_idx == 6 ? 2 : 0;
+		} else
+			$day_type = 2;
+
+		$res = $this->db->query("SELECT org_stn_nm, dst_stn_nm, is_express FROM train_list WHERE trn_no=\"{$trn_no}\" AND day_type={$day_type};");
+		if ($res === false)
+			throw new \RuntimeException('Local DB error!');
+
+		$data = $res->fetchArray(SQLITE3_ASSOC);
+		if ($data === false)
+			return null;
+
+		$res->finalize();
+		return $data;
+	}
 
 	/*
 	* 부기역명을 제거합니다.
