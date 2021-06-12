@@ -1,12 +1,15 @@
-# genMetroDb
-genMetroDb는 metroLib(https://github.com/k0deh0lic/metroLib)에서 사용되는 metro.db 파일을 생성합니다.
+# genMetroDB
+genMetroDB는 metroLib에서 사용되는 metro.db 파일을 생성합니다.
 
 ## 요구 사항
 PHP 7.4 이상
+PHP CURL 확장 기능 사용 가능   
+PHP mbstring 확장 기능 사용 가능   
+PHP Sqlite3 확장 기능 사용 가능   
 
 ## 사용 방법
-1. 전국도시철도운행정보표준데이터(https://www.data.go.kr/data/15013206/standard.do)에서 한국철도공사 및 서울교통공사 csv 파일을 다운로드 받아서 input 디렉터리에 넣습니다.   
-2. 한국천문연구원 특일정보 OpenAPI(https://data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15012690) 키를 발급받은 뒤 genTrainDB.php의 맨 위 $service_key 변수의 값으로 설정합니다.   
+1. 전국도시철도운행정보표준데이터(https://www.data.go.kr/data/15013206/standard.do )에서 한국철도공사 및 서울교통공사 csv 파일을 다운로드 받아서 input 디렉터리에 넣습니다.   
+2. 한국천문연구원 특일정보 OpenAPI(https://data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15012690 ) 키를 발급받은 뒤 genTrainDB.php의 맨 위 $service_key 변수의 값으로 설정합니다.   
 3. genTrainDB.php를 실행합니다. (예: php ./genTrainDB.php)   
 4. output 디렉터리의 metro.db를 metroLib.php와 동일 디렉터리에 옮기세요.   
 
