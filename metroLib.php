@@ -209,8 +209,6 @@ class metroLib {
 
 			if (($train['line'] == '1' || $train['line'] == '4') && $train['dst_stn_nm'] == '서울')
 				$train['dst_stn_nm'] = '서울역'; // 서울역 관련 처리
-			else if ($is_line2 && ($train['dst_stn_nm'] == '외선순환' || $train['dst_stn_nm'] == '내선순환')) 
-				$train['dst_stn_nm'] = '성수'; // 2호선 외·내선순환행은 성수 시종착임.
 
 			$train['dst_stn_cd'] = $train['dst_stn_nm'] == null ? null : $this->line_data[$train['line']][$train['dst_stn_nm']];
 
@@ -287,7 +285,7 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataByTopis(string $line_code) : ?array {
-		$line_list = ['1' => '1호선', '3' => '3호선', '4' => '4호선', '7' => '7호선'];
+		$line_list = ['1' => '1호선','2'=>"2호선" '3' => '3호선', '4' => '4호선', '7' => '7호선'];
 
 		if (!array_key_exists($line_code, $line_list))
 			return null;
@@ -332,8 +330,27 @@ class metroLib {
 					$stn_nm = '춘의';
 					break;
 			}
-
+            $trainNo = $e['trainNo'];
 			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
+			if($line_code =="2"){  //2호선은 앞자리에 따라 입고, 주빅, 다음 행선지가 결정됨
+                $trainNoString = "{$trainNo}";
+				$trainNo = (int) "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
+				switch($trainNoString[0]):
+					case 1:
+					case 5:  //지선은  그대로 탈출
+						break;
+					case 9:// 시운전 부분 e.g. 9901 9001 이런식으로 시운전이 나옵니다
+						/*todo*/
+						break;
+					case 6:  //앞자리 바꾸기
+						$dst_stn_nm ="성수";
+						break;
+					default:
+						if($dst_stn_nm == "성수"){
+							$dst_stn_nm = (e['updnLine']==0 ? "외선" : "내선")."순환";
+				}
+			}
+
 			if ($dst_stn_nm == '서울')
 				$dst_stn_nm = '서울역';
 			else if ($line_code == '7' && $dst_stn_nm === '53') // 석남행은 53으로 나옴.
@@ -349,7 +366,7 @@ class metroLib {
 					break;
 			}
 
-			$train_list[$e['trainNo']] = array('dst_stn_nm' => $dst_stn_nm,
+			$train_list[$trainNo] = array('dst_stn_nm' => $dst_stn_nm,
 												'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
 												'is_exp' => $e['directAt'] == '1',
 												'stn_nm' => $stn_nm,
