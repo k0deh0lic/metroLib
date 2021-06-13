@@ -360,7 +360,7 @@ class metroLib {
 					default:
 						if($dst_stn_nm == "성수"){
 
-							$dst_stn_nm = ($e['updnLine']==0 ? "외선" : "내선")."순환";
+							$dst_stn_nm = ($e['updnLine']==0 ? "내선" : "외선")."순환";
 						}
 
 				}
