@@ -237,17 +237,23 @@ class metroLib {
 					$trn_no = substr($trn_no, 1);
 					if (array_key_exists($trn_no, $train_list2)) {
 						$train['is_exp'] = $train_list2[$trn_no]['is_exp'];
-
-						if ($train['stn_nm'] == null) {
-							$train['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
-							$train['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
-						}
-
-						// 석남행 열차가 부평구청행으로 나오기에 어쩔 수 없이 조건 추가
-						if ($train['dst_stn_nm'] == null || $train['dst_stn_nm'] == '부평구청') {
+						if($train['line'] == '2'){
 							$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
 							$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
 						}
+						else{
+							if ($train['stn_nm'] == null) {
+								$train['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
+								$train['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
+							}
+						// 석남행 열차가 부평구청행으로 나오기에 어쩔 수 없이 조건 추가
+							if ($train['dst_stn_nm'] == null || $train['dst_stn_nm'] == '부평구청') {
+								$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
+								$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
+							}		
+							
+						}
+
 					}
 				}
 			}
@@ -285,7 +291,9 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataByTopis(string $line_code) : ?array {
-		$line_list = ['1' => '1호선','2'=>"2호선" '3' => '3호선', '4' => '4호선', '7' => '7호선'];
+
+		$line_list = ['1' => '1호선','2'=>"2호선", '3' => '3호선', '4' => '4호선', '7' => '7호선'];
+
 
 		if (!array_key_exists($line_code, $line_list))
 			return null;
@@ -334,8 +342,12 @@ class metroLib {
 			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
 			if($line_code =="2"){  //2호선은 앞자리에 따라 입고, 주빅, 다음 행선지가 결정됨
                 $trainNoString = "{$trainNo}";
-				$trainNo = (int) "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
-				switch($trainNoString[0]):
+
+				$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
+				$dst_stn_nm = str_replace(["지선","종착"], "",$dst_stn_nm);//종착명에서 지선, 종착 붙은거 제거
+				$stn_nm = str_replace(["지선","종착"], "",$stn_nm);   //현재역명에서 지선, 종착 붙은거 제거
+				switch($trainNoString[0]){
+
 					case 1:
 					case 5:  //지선은  그대로 탈출
 						break;
@@ -347,7 +359,10 @@ class metroLib {
 						break;
 					default:
 						if($dst_stn_nm == "성수"){
-							$dst_stn_nm = (e['updnLine']==0 ? "외선" : "내선")."순환";
+
+							$dst_stn_nm = ($e['updnLine']==0 ? "외선" : "내선")."순환";
+						}
+
 				}
 			}
 
@@ -366,12 +381,12 @@ class metroLib {
 					break;
 			}
 
-			$train_list[$trainNo] = array('dst_stn_nm' => $dst_stn_nm,
-												'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
-												'is_exp' => $e['directAt'] == '1',
-												'stn_nm' => $stn_nm,
-												'stn_cd' => $this->line_data[$line_code][$stn_nm],
-												'trn_sts' => $trn_sts);
+			$train_list[$trainNo] = ['dst_stn_nm' => $dst_stn_nm,
+									'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm]  ?? "", //내선 외선 종착코드는 전산상 88임
+									'is_exp' => $e['directAt'] == '1',
+									'stn_nm' => $stn_nm,
+									'stn_cd' => $this->line_data[$line_code][$stn_nm],
+									'trn_sts' => $trn_sts];
 		}
 
 		return $train_list;
