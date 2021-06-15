@@ -342,8 +342,7 @@ class metroLib {
 			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
 			if($line_code =="2"){  //2호선은 앞자리에 따라 입고, 주빅, 다음 행선지가 결정됨
                 $trainNoString = "{$trainNo}";
-
-				$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
+				
 				$dst_stn_nm = str_replace(["지선","종착"], "",$dst_stn_nm);//종착명에서 지선, 종착 붙은거 제거
 				$stn_nm = str_replace(["지선","종착"], "",$stn_nm);   //현재역명에서 지선, 종착 붙은거 제거
 				switch($trainNoString[0]){
@@ -356,8 +355,10 @@ class metroLib {
 						break;
 					case 6:  //앞자리 바꾸기
 						$dst_stn_nm ="성수";
+						$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
 						break;
 					default:
+						$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
 						if($dst_stn_nm == "성수"){
 
 							$dst_stn_nm = ($e['updnLine']==0 ? "내선" : "외선")."순환";
