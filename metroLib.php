@@ -237,16 +237,18 @@ class metroLib {
 					$trn_no = substr($trn_no, 1);
 					if (array_key_exists($trn_no, $train_list2)) {
 						$train['is_exp'] = $train_list2[$trn_no]['is_exp'];
-						if($train['line'] == '2'){
+
+						// 2호선은 따로 처리
+						if ($train['line'] == '2') {
 							$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
 							$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
-						}
-						else{
+						} else {
 							if ($train['stn_nm'] == null) {
 								$train['stn_nm'] = $train_list2[$trn_no]['stn_nm'];
 								$train['stn_cd'] = $train_list2[$trn_no]['stn_cd'];
 							}
-						// 석남행 열차가 부평구청행으로 나오기에 어쩔 수 없이 조건 추가
+
+							// 석남행 열차가 부평구청행으로 나오기에 어쩔 수 없이 조건 추가
 							if ($train['dst_stn_nm'] == null || $train['dst_stn_nm'] == '부평구청') {
 								$train['dst_stn_nm'] = $train_list2[$trn_no]['dst_stn_nm'];
 								$train['dst_stn_cd'] = $train_list2[$trn_no]['dst_stn_cd'];
@@ -291,9 +293,7 @@ class metroLib {
 	* @throw \RuntimeException
 	*/
 	protected function getDataByTopis(string $line_code) : ?array {
-
-		$line_list = ['1' => '1호선','2'=>"2호선", '3' => '3호선', '4' => '4호선', '7' => '7호선'];
-
+		$line_list = ['1' => '1호선', '2' => '2호선', '3' => '3호선', '4' => '4호선', '7' => '7호선'];
 
 		if (!array_key_exists($line_code, $line_list))
 			return null;
@@ -328,6 +328,15 @@ class metroLib {
 
 		$train_list = array();
 		foreach ($res['realtimePositionList'] as $e) {
+			$trn_no = $e['trainNo'];
+
+			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
+			// 역명 불일치 문제 수정
+			if ($dst_stn_nm == '서울')
+				$dst_stn_nm = '서울역';
+			else if ($line_code == '7' && $dst_stn_nm === '53') // 석남행은 53으로 나옴.
+				$dst_stn_nm = '석남';
+
 			$stn_nm = $this->removeSubStnNm($e['statnNm']);
 			// 역명 불일치 문제 수정
 			switch ($stn_nm) {
@@ -338,39 +347,27 @@ class metroLib {
 					$stn_nm = '춘의';
 					break;
 			}
-            $trainNo = $e['trainNo'];
-			$dst_stn_nm = $this->removeSubStnNm($e['statnTnm']);
-			if($line_code =="2"){  //2호선은 앞자리에 따라 입고, 주빅, 다음 행선지가 결정됨
-                $trainNoString = "{$trainNo}";
-				
-				$dst_stn_nm = str_replace(["지선","종착"], "",$dst_stn_nm);//종착명에서 지선, 종착 붙은거 제거
-				$stn_nm = str_replace(["지선","종착"], "",$stn_nm);   //현재역명에서 지선, 종착 붙은거 제거
-				switch($trainNoString[0]){
 
+			// 2호선 관련 추가 처리
+			if ($line_code == '2') {
+				$dst_stn_nm = preg_replace('/지선|종착$/', '', $dst_stn_nm);
+				$stn_nm = preg_replace('/지선|종착$/', '', $stn_nm);
+				switch($trn_no[0]) {
 					case 1:
-					case 5:  //지선은  그대로 탈출
+					case 5: // 지선
 						break;
-					case 9:// 시운전 부분 e.g. 9901 9001 이런식으로 시운전이 나옵니다
-						/*todo*/
+					case 9: // 시운전
 						break;
-					case 6:  //앞자리 바꾸기
-						$dst_stn_nm ="성수";
-						$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
+					case 6:  // 순환종료
+						$dst_stn_nm = '성수';
+						$trn_no = '2'.substr($trn_no, 1);
 						break;
 					default:
-						$trainNo =  "2".substr($trainNoString,1); //2호선 앞자리 바꾸기
-						if($dst_stn_nm == "성수"){
-
-							$dst_stn_nm = ($e['updnLine']==0 ? "내선" : "외선")."순환";
-						}
-
+						$trn_no = '2'.substr($trn_no, 1);
+						if ($dst_stn_nm == '성수')
+							$dst_stn_nm = ($e['updnLine'] == 0 ? '내선' : '외선').'순환';
 				}
 			}
-
-			if ($dst_stn_nm == '서울')
-				$dst_stn_nm = '서울역';
-			else if ($line_code == '7' && $dst_stn_nm === '53') // 석남행은 53으로 나옴.
-				$dst_stn_nm = '석남';
 
 			$trn_sts = 3;
 			switch ($e['trainSttus']) {
@@ -382,12 +379,12 @@ class metroLib {
 					break;
 			}
 
-			$train_list[$trainNo] = ['dst_stn_nm' => $dst_stn_nm,
-									'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm]  ?? "", //내선 외선 종착코드는 전산상 88임
+			$train_list[$trainNo] = array('dst_stn_nm' => $dst_stn_nm,
+									'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
 									'is_exp' => $e['directAt'] == '1',
 									'stn_nm' => $stn_nm,
 									'stn_cd' => $this->line_data[$line_code][$stn_nm],
-									'trn_sts' => $trn_sts];
+									'trn_sts' => $trn_sts);
 		}
 
 		return $train_list;
@@ -455,7 +452,7 @@ class metroLib {
 	*/
 	protected function readArrayFromJsonFile(string $file_path) : ?array {
 		if (!file_exists($file_path))
-			throw new \RuntimeException('file_path is not exist., value='.$filePath);
+			throw new \RuntimeException('file_path is not exist., value='.$file_path);
 
 		$fp = fopen($file_path, 'r');
 		$data = fread($fp, filesize($file_path));
