@@ -379,7 +379,7 @@ class metroLib {
 					break;
 			}
 
-			$train_list[$trainNo] = array('dst_stn_nm' => $dst_stn_nm,
+			$train_list[$trn_no] = array('dst_stn_nm' => $dst_stn_nm,
 									'dst_stn_cd' => $this->line_data[$line_code][$dst_stn_nm],
 									'is_exp' => $e['directAt'] == '1',
 									'stn_nm' => $stn_nm,
