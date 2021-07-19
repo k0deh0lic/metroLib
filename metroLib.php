@@ -25,7 +25,7 @@ class metroLib {
 	* 이 기능을 사용하려면 metroLib.php와 동일한 경로에 metro.db 파일이 필요합니다.
 	* metro.db는 genTrainDB를 이용해서 만들 수 있습니다.
 	*/
-	protected const USE_LOCAL_DB = true;
+	protected const USE_LOCAL_DB = false;
 
 	/*
 	* 여기서부터는 건드리지 마십시오.
@@ -186,7 +186,10 @@ class metroLib {
 			// 서울교통공사 편성번호는 0123 식으로 나오기에, 앞에 있는 0을 떼줌.
 			if ($train['trn_form_no'] != null)
 				$train['trn_form_no'] = ltrim($train['trn_form_no'], '0');
-			
+			// 서울교통공사 1호선 편성번호 오류 보정
+			if ($train['line'] == '1' && substr($train['trn_no'], 0, 1) == 'S' && $train['trn_form_no'] != null && substr($train['trn_form_no'], 0, 1) != '1')
+				$train['trn_form_no'] = '1'.substr($train['trn_form_no'], 1);
+
 			$train['trn_sts'] = $e['sts'];
 
 			if (isset($e['directAt']))
